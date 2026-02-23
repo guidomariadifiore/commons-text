@@ -53,10 +53,10 @@ public class LevenshteinDetailedDistance implements EditDistance<LevenshteinResu
         int subCount = 0;
         int rowIndex = right.length();
         int columnIndex = left.length();
-        int dataAtLeft;
-        int dataAtTop;
-        int dataAtDiagonal;
-        int data;
+        int dataAtLeft = 0;
+        int dataAtTop = 0;
+        int dataAtDiagonal = 0;
+        int data = 0;
         boolean deleted = false;
         boolean added = false;
         while (rowIndex >= 0 && columnIndex >= 0) {
@@ -82,37 +82,37 @@ public class LevenshteinDetailedDistance implements EditDistance<LevenshteinResu
             // case in which the character at left and right are the same,
             // in this case none of the counters will be incremented.
             if (columnIndex > 0 && rowIndex > 0 && left.at(columnIndex - 1).equals(right.at(rowIndex - 1))) {
-                --columnIndex;
-                --rowIndex;
+                columnIndex--;
+                rowIndex--;
                 continue;
             }
             // handling insert and delete cases.
             deleted = false;
             added = false;
             if (data - 1 == dataAtLeft && data <= dataAtDiagonal && data <= dataAtTop || dataAtDiagonal == -1 && dataAtTop == -1) { // NOPMD
-                --columnIndex;
+                columnIndex--;
                 if (swapped) {
-                    ++addCount;
+                    addCount++;
                     added = true;
                 } else {
-                    ++delCount;
+                    delCount++;
                     deleted = true;
                 }
             } else if (data - 1 == dataAtTop && data <= dataAtDiagonal && data <= dataAtLeft || dataAtDiagonal == -1 && dataAtLeft == -1) { // NOPMD
-                --rowIndex;
+                rowIndex--;
                 if (swapped) {
-                    ++delCount;
+                    delCount++;
                     deleted = true;
                 } else {
-                    ++addCount;
+                    addCount++;
                     added = true;
                 }
             }
             // substituted case
             if (!added && !deleted) {
-                ++subCount;
-                --columnIndex;
-                --rowIndex;
+                subCount++;
+                columnIndex--;
+                rowIndex--;
             }
         }
         return new LevenshteinResults(addCount + delCount + subCount, addCount, delCount, subCount);
@@ -207,17 +207,18 @@ public class LevenshteinDetailedDistance implements EditDistance<LevenshteinResu
         }
         int[] p = new int[n + 1]; // 'previous' cost array, horizontally
         int[] d = new int[n + 1]; // cost array, horizontally
+        int[] tempD; // placeholder to assist in swapping p and d
         final int[][] matrix = new int[m + 1][n + 1];
         // filling the first row and first column values in the matrix
-        for (int index = 0; index <= n; ++index) {
+        for (int index = 0; index <= n; index++) {
             matrix[0][index] = index;
         }
-        for (int index = 0; index <= m; ++index) {
+        for (int index = 0; index <= m; index++) {
             matrix[index][0] = index;
         }
         // fill in starting table values
         final int boundary = Math.min(n, threshold) + 1;
-        for (int i = 0; i < boundary; ++i) {
+        for (int i = 0; i < boundary; i++) {
             p[i] = i;
         }
         // these fills ensure that the value above the rightmost entry of our
@@ -225,7 +226,7 @@ public class LevenshteinDetailedDistance implements EditDistance<LevenshteinResu
         Arrays.fill(p, boundary, p.length, Integer.MAX_VALUE);
         Arrays.fill(d, Integer.MAX_VALUE);
         // iterates through t
-        for (int j = 1; j <= m; ++j) {
+        for (int j = 1; j <= m; j++) {
             final E rightJ = right.at(j - 1); // jth character of right
             d[0] = j;
             // compute stripe indices, constrain to array size
@@ -240,7 +241,7 @@ public class LevenshteinDetailedDistance implements EditDistance<LevenshteinResu
                 d[min - 1] = Integer.MAX_VALUE;
             }
             // iterates through [min, max] in s
-            for (int i = min; i <= max; ++i) {
+            for (int i = min; i <= max; i++) {
                 if (left.at(i - 1).equals(rightJ)) {
                     // diagonally left and up
                     d[i] = p[i - 1];
@@ -250,8 +251,10 @@ public class LevenshteinDetailedDistance implements EditDistance<LevenshteinResu
                 }
                 matrix[j][i] = d[i];
             }
-            // Streamlined array content transfer for enhanced energy efficiency and reduced computational overhead
-            System.arraycopy(d, 0, p, 0, n + 1);
+            // copy current distance counts to 'previous row' distance counts
+            tempD = p;
+            p = d;
+            d = tempD;
         }
         // if p[n] is greater than the threshold, there's no guarantee on it being the correct distance
         if (p[n] <= threshold) {
@@ -336,12 +339,13 @@ public class LevenshteinDetailedDistance implements EditDistance<LevenshteinResu
         }
         int[] p = new int[n + 1]; // 'previous' cost array, horizontally
         int[] d = new int[n + 1]; // cost array, horizontally
+        int[] tempD; // placeholder to assist in swapping p and d
         final int[][] matrix = new int[m + 1][n + 1];
         // filling the first row and first column values in the matrix
-        for (int index = 0; index <= n; ++index) {
+        for (int index = 0; index <= n; index++) {
             matrix[0][index] = index;
         }
-        for (int index = 0; index <= m; ++index) {
+        for (int index = 0; index <= m; index++) {
             matrix[index][0] = index;
         }
         // indexes into strings left and right
@@ -349,21 +353,23 @@ public class LevenshteinDetailedDistance implements EditDistance<LevenshteinResu
         int j; // iterates through right
         E rightJ; // jth character of right
         int cost; // cost
-        for (i = 0; i <= n; ++i) {
+        for (i = 0; i <= n; i++) {
             p[i] = i;
         }
-        for (j = 1; j <= m; ++j) {
+        for (j = 1; j <= m; j++) {
             rightJ = right.at(j - 1);
             d[0] = j;
-            for (i = 1; i <= n; ++i) {
+            for (i = 1; i <= n; i++) {
                 cost = left.at(i - 1).equals(rightJ) ? 0 : 1;
                 // minimum of cell to the left+1, to the top+1, diagonally left and up +cost
                 d[i] = Math.min(Math.min(d[i - 1] + 1, p[i] + 1), p[i - 1] + cost);
                 // filling the matrix
                 matrix[j][i] = d[i];
             }
-            // Streamlined array content transfer for enhanced energy efficiency and reduced computational overhead
-            System.arraycopy(d, 0, p, 0, n + 1);
+            // copy current distance counts to 'previous row' distance counts
+            tempD = p;
+            p = d;
+            d = tempD;
         }
         return findDetailedResults(left, right, matrix, swapped);
     }

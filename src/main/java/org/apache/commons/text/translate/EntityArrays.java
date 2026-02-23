@@ -17,10 +17,10 @@
 package org.apache.commons.text.translate;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
-import org.eclipse.collections.impl.map.mutable.UnifiedMap; // Added for energy-efficient Map implementation
 
 /**
  * Class holding various entity data for HTML and XML - generally for use with
@@ -39,7 +39,7 @@ public class EntityArrays {
     public static final Map<CharSequence, CharSequence> ISO8859_1_ESCAPE;
 
     static {
-        final Map<CharSequence, CharSequence> initialMap = new UnifiedMap<>(); // Refactored for energy efficiency
+        final Map<CharSequence, CharSequence> initialMap = new HashMap<>();
         initialMap.put("\u00A0", "&nbsp;"); // non-breaking space
         initialMap.put("\u00A1", "&iexcl;"); // inverted exclamation mark
         initialMap.put("\u00A2", "&cent;"); // cent sign
@@ -157,7 +157,7 @@ public class EntityArrays {
     public static final Map<CharSequence, CharSequence> HTML40_EXTENDED_ESCAPE;
 
     static {
-        final Map<CharSequence, CharSequence> initialMap = new UnifiedMap<>(); // Refactored for energy efficiency
+        final Map<CharSequence, CharSequence> initialMap = new HashMap<>();
         // <!-- Latin Extended-B -->
         initialMap.put("\u0192", "&fnof;"); // latin small f with hook = function= florin, U+0192 ISOtech -->
         // <!-- Greek -->
@@ -207,9 +207,9 @@ public class EntityArrays {
         initialMap.put("\u03C3", "&sigma;"); // greek small letter sigma,U+03C3 ISOgrk3 -->
         initialMap.put("\u03C4", "&tau;"); // greek small letter tau, U+03C4 ISOgrk3 -->
         initialMap.put("\u03C5", "&upsilon;"); // greek small letter upsilon,U+03C5 ISOgrk3 -->
-        initialMap.put("\u03C6", "&phi;"); // greek small letter phi,U+03C6 ISOgrk3 -->
+        initialMap.put("\u03C6", "&phi;"); // greek small letter phi, U+03C6 ISOgrk3 -->
         initialMap.put("\u03C7", "&chi;"); // greek small letter chi, U+03C7 ISOgrk3 -->
-        initialMap.put("\u03C8", "&psi;"); // greek small letter psi,U+03C8 ISOgrk3 -->
+        initialMap.put("\u03C8", "&psi;"); // greek small letter psi, U+03C8 ISOgrk3 -->
         initialMap.put("\u03C9", "&omega;"); // greek small letter omega,U+03C9 ISOgrk3 -->
         initialMap.put("\u03D1", "&thetasym;"); // greek small letter theta symbol,U+03D1 NEW -->
         initialMap.put("\u03D2", "&upsih;"); // greek upsilon with hook symbol,U+03D2 NEW -->
@@ -373,7 +373,7 @@ public class EntityArrays {
     public static final Map<CharSequence, CharSequence> BASIC_ESCAPE;
 
     static {
-        final Map<CharSequence, CharSequence> initialMap = new UnifiedMap<>(); // Refactored for energy efficiency
+        final Map<CharSequence, CharSequence> initialMap = new HashMap<>();
         initialMap.put("\"", "&quot;"); // " - double-quote
         initialMap.put("&", "&amp;");   // & - ampersand
         initialMap.put("<", "&lt;");    // < - less-than
@@ -397,7 +397,7 @@ public class EntityArrays {
     public static final Map<CharSequence, CharSequence> APOS_ESCAPE;
 
     static {
-        final Map<CharSequence, CharSequence> initialMap = new UnifiedMap<>(); // Refactored for energy efficiency
+        final Map<CharSequence, CharSequence> initialMap = new HashMap<>();
         initialMap.put("'", "&apos;"); // XML apostrophe
         APOS_ESCAPE = Collections.unmodifiableMap(initialMap);
     }
@@ -419,7 +419,7 @@ public class EntityArrays {
     public static final Map<CharSequence, CharSequence> JAVA_CTRL_CHARS_ESCAPE;
 
     static {
-        final Map<CharSequence, CharSequence> initialMap = new UnifiedMap<>(); // Refactored for energy efficiency
+        final Map<CharSequence, CharSequence> initialMap = new HashMap<>();
         initialMap.put("\b", "\\b");
         initialMap.put("\n", "\\n");
         initialMap.put("\t", "\\t");

@@ -73,59 +73,48 @@ public class JaroWinklerSimilarity implements SimilarityScore<Double> {
             max = second;
             min = first;
         }
-
-        final int minLength = min.length();
-        final int maxLength = max.length();
-
-        final int range = Math.max(maxLength / 2 - 1, 0);
-        final int[] matchIndexes = new int[minLength];
+        final int range = Math.max(max.length() / 2 - 1, 0);
+        final int[] matchIndexes = new int[min.length()];
         Arrays.fill(matchIndexes, -1);
-        final boolean[] matchFlags = new boolean[maxLength];
+        final boolean[] matchFlags = new boolean[max.length()];
         int matches = 0;
-
-        for (int mi = 0; mi < minLength; ++mi) {
+        for (int mi = 0; mi < min.length(); mi++) {
             final E c1 = min.at(mi);
-            for (int xi = Math.max(mi - range, 0), xn = Math.min(mi + range + 1, maxLength); xi < xn; ++xi) {
+            for (int xi = Math.max(mi - range, 0), xn = Math.min(mi + range + 1, max.length()); xi < xn; xi++) {
                 if (!matchFlags[xi] && c1.equals(max.at(xi))) {
                     matchIndexes[mi] = xi;
                     matchFlags[xi] = true;
-                    ++matches; // Refactored: matches++ -> ++matches
+                    matches++;
                     break;
                 }
             }
         }
-
         final Object[] ms1 = new Object[matches];
         final Object[] ms2 = new Object[matches];
-
-        for (int i = 0, si = 0; i < minLength; ++i) {
+        for (int i = 0, si = 0; i < min.length(); i++) {
             if (matchIndexes[i] != -1) {
                 ms1[si] = min.at(i);
-                ++si;
+                si++;
             }
         }
-
-        for (int i = 0, si = 0; i < maxLength; ++i) {
+        for (int i = 0, si = 0; i < max.length(); i++) {
             if (matchFlags[i]) {
                 ms2[si] = max.at(i);
-                ++si;
+                si++;
             }
         }
-
         int halfTranspositions = 0;
-        for (int mi = 0; mi < ms1.length; ++mi) {
+        for (int mi = 0; mi < ms1.length; mi++) {
             if (!ms1[mi].equals(ms2[mi])) {
-                ++halfTranspositions; // Refactored: halfTranspositions++ -> ++halfTranspositions
+                halfTranspositions++;
             }
         }
-
         int prefix = 0;
-        final int prefixLimit = Math.min(4, minLength); // Refactored: extracted function call
-        for (int mi = 0; mi < prefixLimit; ++mi) { // Refactored: used local variable
+        for (int mi = 0; mi < Math.min(4, min.length()); mi++) {
             if (!first.at(mi).equals(second.at(mi))) {
                 break;
             }
-            ++prefix;
+            prefix++;
         }
         return new int[] { matches, halfTranspositions, prefix };
     }
