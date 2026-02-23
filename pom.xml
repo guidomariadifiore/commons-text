@@ -142,7 +142,19 @@
       <version>1.14.1</version>
       <scope>test</scope>
     </dependency>
-  </dependencies>
+  
+        <!-- Eclipse Collections -->
+        <dependency>
+            <groupId>org.eclipse.collections</groupId>
+            <artifactId>eclipse-collections-api</artifactId>
+            <version>11.1.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.collections</groupId>
+            <artifactId>eclipse-collections</artifactId>
+            <version>11.1.0</version>
+        </dependency>
+    </dependencies>
   <build>
     <defaultGoal>clean verify apache-rat:check japicmp:cmp checkstyle:check pmd:check spotbugs:check javadoc:javadoc</defaultGoal>
     <pluginManagement>
@@ -469,7 +481,19 @@
           <version>${graalvm.version}</version>
           <scope>test</scope>
         </dependency>
-	  </dependencies>
+	  
+        <!-- Eclipse Collections -->
+        <dependency>
+            <groupId>org.eclipse.collections</groupId>
+            <artifactId>eclipse-collections-api</artifactId>
+            <version>11.1.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.collections</groupId>
+            <artifactId>eclipse-collections</artifactId>
+            <version>11.1.0</version>
+        </dependency>
+    </dependencies>
     </profile>
     <profile>
 	    <!-- Java 11-21 -->
@@ -501,7 +525,19 @@
           <version>${graalvm.version}</version>
           <scope>test</scope>
         </dependency>
-	  </dependencies>
+	  
+        <!-- Eclipse Collections -->
+        <dependency>
+            <groupId>org.eclipse.collections</groupId>
+            <artifactId>eclipse-collections-api</artifactId>
+            <version>11.1.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.collections</groupId>
+            <artifactId>eclipse-collections</artifactId>
+            <version>11.1.0</version>
+        </dependency>
+    </dependencies>
     </profile>
     <profile>
 	    <!-- Java 22 and up -->
@@ -560,7 +596,19 @@
           <version>${graalvm.version}</version>
           <scope>test</scope>
         </dependency>
-	  </dependencies>
+	  
+        <!-- Eclipse Collections -->
+        <dependency>
+            <groupId>org.eclipse.collections</groupId>
+            <artifactId>eclipse-collections-api</artifactId>
+            <version>11.1.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.collections</groupId>
+            <artifactId>eclipse-collections</artifactId>
+            <version>11.1.0</version>
+        </dependency>
+    </dependencies>
     </profile>
     <profile>
       <id>setup-checkout</id>
@@ -629,7 +677,19 @@
           <version>4.5.0</version>
           <scope>test</scope>
         </dependency>
-      </dependencies>
+      
+        <!-- Eclipse Collections -->
+        <dependency>
+            <groupId>org.eclipse.collections</groupId>
+            <artifactId>eclipse-collections-api</artifactId>
+            <version>11.1.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.collections</groupId>
+            <artifactId>eclipse-collections</artifactId>
+            <version>11.1.0</version>
+        </dependency>
+    </dependencies>
       <build>
         <plugins>
           <!-- Enable the compilation of the benchmarks -->

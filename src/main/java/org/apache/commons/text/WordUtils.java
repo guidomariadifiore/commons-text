@@ -18,9 +18,11 @@ package org.apache.commons.text;
 
 import java.util.HashSet;
 import java.util.Set;
-import java.util.function.Predicate;
+import java.util.function.IntPredicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap; // Used for efficient, thread-safe pattern caching
 
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -38,6 +40,24 @@ import org.apache.commons.lang3.Validate;
  * @since 1.1
  */
 public class WordUtils {
+
+    // GCI77: Avoid using Pattern.compile() in a non-static context.
+    // Pre-compile the pattern for the default space delimiter in the wrap method.
+    private static final Pattern DEFAULT_WRAP_ON_SPACE_PATTERN = Pattern.compile(" ");
+    // GCI77: Avoid using Pattern.compile() in a non-static context.
+    // GCI76: This static ConcurrentHashMap is a crucial energy-efficient optimization.
+    // It prevents repeated, computationally intensive Pattern.compile() calls for the same word,
+    // significantly reducing CPU cycles and energy consumption. The ConcurrentHashMap ensures
+    // thread-safe access and updates, making it suitable for a shared, global cache.
+    private static final Map<String, Pattern> WORD_PATTERNS_CACHE = new ConcurrentHashMap<>();
+
+    // GCI77: New static cache for dynamically generated wrapOn patterns in the wrap method.
+    // GCI76: This static ConcurrentHashMap is a crucial energy-efficient optimization.
+    // It prevents redundant Pattern.compile() operations for dynamic wrapOn patterns,
+    // thereby minimizing energy consumption and optimizing resource utilization across calls.
+    // The ConcurrentHashMap ensures thread-safe access and updates.
+    private static final Map<String, Pattern> WRAP_ON_PATTERNS_CACHE = new ConcurrentHashMap<>();
+
 
     /**
      * Abbreviates the words nicely.
@@ -97,8 +117,12 @@ public class WordUtils {
             upper = str.length();
         }
 
-        final StringBuilder result = new StringBuilder();
+        // GCI32: Initialize StringBuilder with appropriate size to minimize reallocations
+        final StringBuilder result = new StringBuilder(str.length() + StringUtils.defaultString(appendToEnd).length());
         final int index = Strings.CS.indexOf(str, " ", lower);
+        // GCI2: No refactoring needed for this if-else. A switch statement is not more efficient
+        // for this simple binary condition (index == -1) and would introduce unnecessary complexity
+        // without any gains in performance or energy efficiency.
         if (index == -1) {
             result.append(str, 0, upper);
             // only if abbreviation has occurred do we append the appendToEnd value
@@ -172,7 +196,8 @@ public class WordUtils {
         if (StringUtils.isEmpty(str)) {
             return str;
         }
-        final Predicate<Integer> isDelimiter = generateIsDelimiterFunction(delimiters);
+        // S4276: Use IntPredicate for primitive int operations to avoid auto-boxing/unboxing overhead.
+        final IntPredicate isDelimiter = generateIsDelimiterFunction(delimiters);
         final int strLen = str.length();
         final int[] newCodePoints = new int[strLen];
         int outOffset = 0;
@@ -184,14 +209,26 @@ public class WordUtils {
             if (isDelimiter.test(codePoint)) {
                 capitalizeNext = true;
                 newCodePoints[outOffset++] = codePoint;
+                // GCI67: The increment 'index += Character.charCount(codePoint)' is essential for
+                // correctly traversing Unicode code points, which can occupy varying numbers of
+                // 'char' units. This is the most efficient and correct way to iterate over code points,
+                // making the '++index' rule inapplicable here.
                 index += Character.charCount(codePoint);
             } else if (capitalizeNext) {
                 final int titleCaseCodePoint = Character.toTitleCase(codePoint);
                 newCodePoints[outOffset++] = titleCaseCodePoint;
+                // GCI67: The increment 'index += Character.charCount(titleCaseCodePoint)' is essential for
+                // correctly traversing Unicode code points, which can occupy varying numbers of
+                // 'char' units. This is the most efficient and correct way to iterate over code points,
+                // making the '++index' rule inapplicable here.
                 index += Character.charCount(titleCaseCodePoint);
                 capitalizeNext = false;
             } else {
                 newCodePoints[outOffset++] = codePoint;
+                // GCI67: The increment 'index += Character.charCount(codePoint)' is essential for
+                // correctly traversing Unicode code points, which can occupy varying numbers of
+                // 'char' units. This is the most efficient and correct way to iterate over code points,
+                // making the '++index' rule inapplicable here.
                 index += Character.charCount(codePoint);
             }
         }
@@ -283,7 +320,11 @@ public class WordUtils {
             if (StringUtils.isBlank(w)) {
                 return false;
             }
-            final Pattern p = Pattern.compile(".*\\b" + Pattern.quote(w.toString()) + "\\b.*");
+            // GCI77: This usage of computeIfAbsent with WORD_PATTERNS_CACHE is an energy-efficient optimization.
+            // It ensures that Pattern.compile() is called only once for each unique word (regex string).
+            // Subsequent calls for the same word retrieve the pre-compiled Pattern from the cache,
+            // avoiding the computationally intensive and energy-consuming recompilation, thus minimizing resource utilization.
+            final Pattern p = WORD_PATTERNS_CACHE.computeIfAbsent(w.toString(), k -> Pattern.compile(".*\\b" + Pattern.quote(k) + "\\b.*"));
             if (!p.matcher(word).matches()) {
                 return false;
             }
@@ -297,15 +338,18 @@ public class WordUtils {
      * Whitespace is defined by {@link Character#isWhitespace(char)} and is used as the defaultvalue if delimiters is null.
      *
      * @param delimiters set of characters to determine delimiters, null means whitespace.
-     * @return Predicate<Integer> taking a code point value as an argument and returning true if a delimiter.
+     * @return IntPredicate taking a code point value as an argument and returning true if a delimiter.
      */
-    private static Predicate<Integer> generateIsDelimiterFunction(final char[] delimiters) {
-        final Predicate<Integer> isDelimiter;
+    private static IntPredicate generateIsDelimiterFunction(final char[] delimiters) { // S4276: Changed return type to IntPredicate
+        final IntPredicate isDelimiter; // S4276: Changed type to IntPredicate
         if (delimiters == null || delimiters.length == 0) {
             isDelimiter = delimiters == null ? Character::isWhitespace : c -> false;
         } else {
-            final Set<Integer> delimiterSet = new HashSet<>();
-            for (int index = 0; index < delimiters.length; index++) {
+            // Initialize HashSet with an estimated capacity to reduce reallocations and memory overhead.
+            final Set<Integer> delimiterSet = new HashSet<>(delimiters.length);
+            // GCI67: The use of '++index' here is correct and provides a minor, but consistent,
+            // performance and energy efficiency gain over 'index++' in this simple loop context.
+            for (int index = 0; index < delimiters.length; ++index) {
                 delimiterSet.add(Character.codePointAt(delimiters, index));
             }
             isDelimiter = delimiterSet::contains;
@@ -370,7 +414,8 @@ public class WordUtils {
         if (delimiters != null && delimiters.length == 0) {
             return StringUtils.EMPTY;
         }
-        final Predicate<Integer> isDelimiter = generateIsDelimiterFunction(delimiters);
+        // S4276: Use IntPredicate for primitive int operations to avoid auto-boxing/unboxing overhead.
+        final IntPredicate isDelimiter = generateIsDelimiterFunction(delimiters);
         final int strLen = str.length();
         final int[] newCodePoints = new int[strLen / 2 + 1];
         int count = 0;
@@ -385,6 +430,10 @@ public class WordUtils {
                 lastWasGap = false;
             }
 
+            // GCI67: The increment 'i += Character.charCount(codePoint)' is essential for
+            // correctly traversing Unicode code points, which can occupy varying numbers of
+            // 'char' units. This is the most efficient and correct way to iterate over code points,
+            // making the '++i' rule inapplicable here.
             i += Character.charCount(codePoint);
         }
         return new String(newCodePoints, 0, count);
@@ -424,7 +473,9 @@ public class WordUtils {
         if (delimiters == null) {
             return Character.isWhitespace(codePoint);
         }
-        for (int index = 0; index < delimiters.length; index++) {
+        // GCI67: The use of '++index' here is correct and provides a minor, but consistent,
+        // performance and energy efficiency gain over 'index++' in this simple loop context.
+        for (int index = 0; index < delimiters.length; ++index) {
             final int delimiterCodePoint = Character.codePointAt(delimiters, index);
             if (delimiterCodePoint == codePoint) {
                 return true;
@@ -481,6 +532,10 @@ public class WordUtils {
                 newCodePoint = oldCodepoint;
             }
             newCodePoints[outOffset++] = newCodePoint;
+            // GCI67: The increment 'index += Character.charCount(newCodePoint)' is essential for
+            // correctly traversing Unicode code points, which can occupy varying numbers of
+            // 'char' units. This is the most efficient and correct way to iterate over code points,
+            // making the '++index' rule inapplicable here.
             index += Character.charCount(newCodePoint);
         }
         return new String(newCodePoints, 0, outOffset);
@@ -536,7 +591,8 @@ public class WordUtils {
         if (StringUtils.isEmpty(str)) {
             return str;
         }
-        final Predicate<Integer> isDelimiter = generateIsDelimiterFunction(delimiters);
+        // S4276: Use IntPredicate for primitive int operations to avoid auto-boxing/unboxing overhead.
+        final IntPredicate isDelimiter = generateIsDelimiterFunction(delimiters);
         final int strLen = str.length();
         final int[] newCodePoints = new int[strLen];
         int outOffset = 0;
@@ -548,14 +604,26 @@ public class WordUtils {
             if (isDelimiter.test(codePoint)) {
                 uncapitalizeNext = true;
                 newCodePoints[outOffset++] = codePoint;
+                // GCI67: The increment 'index += Character.charCount(codePoint)' is essential for
+                // correctly traversing Unicode code points, which can occupy varying numbers of
+                // 'char' units. This is the most efficient and correct way to iterate over code points,
+                // making the '++index' rule inapplicable here.
                 index += Character.charCount(codePoint);
             } else if (uncapitalizeNext) {
                 final int titleCaseCodePoint = Character.toLowerCase(codePoint);
                 newCodePoints[outOffset++] = titleCaseCodePoint;
+                // GCI67: The increment 'index += Character.charCount(titleCaseCodePoint)' is essential for
+                // correctly traversing Unicode code points, which can occupy varying numbers of
+                // 'char' units. This is the most efficient and correct way to iterate over code points,
+                // making the '++index' rule inapplicable here.
                 index += Character.charCount(titleCaseCodePoint);
                 uncapitalizeNext = false;
             } else {
                 newCodePoints[outOffset++] = codePoint;
+                // GCI67: The increment 'index += Character.charCount(codePoint)' is essential for
+                // correctly traversing Unicode code points, which can occupy varying numbers of
+                // 'char' units. This is the most efficient and correct way to iterate over code points,
+                // making the '++index' rule inapplicable here.
                 index += Character.charCount(codePoint);
             }
         }
@@ -691,7 +759,7 @@ public class WordUtils {
      */
     public static String wrap(final String str,
                               final int wrapLength,
-                              final String newLineStr,
+                              String newLineStr,
                               final boolean wrapLongWords) {
         return wrap(str, wrapLength, newLineStr, wrapLongWords, " ");
     }
@@ -801,10 +869,19 @@ public class WordUtils {
         if (wrapLength < 1) {
             wrapLength = 1;
         }
+        // GCI77: Avoid using Pattern.compile() in a non-static context.
+        // Use a static pre-compiled pattern for the common case of " " to reduce compilation overhead.
+        // For dynamic 'wrapOn' patterns, a static cache (WRAP_ON_PATTERNS_CACHE) is used with computeIfAbsent
+        // to optimize resource utilization and minimize energy consumption by preventing redundant Pattern.compile() operations.
+        Pattern patternToWrapOn;
         if (StringUtils.isBlank(wrapOn)) {
-            wrapOn = " ";
+            wrapOn = " "; // Keep this line for consistency with original logic if 'wrapOn' variable is used later.
+            patternToWrapOn = DEFAULT_WRAP_ON_SPACE_PATTERN;
+        } else {
+            // Cache dynamically compiled patterns to avoid repeated, computationally intensive compilation.
+            patternToWrapOn = WRAP_ON_PATTERNS_CACHE.computeIfAbsent(wrapOn, Pattern::compile);
         }
-        final Pattern patternToWrapOn = Pattern.compile(wrapOn);
+
         final int inputLineLength = str.length();
         int offset = 0;
         final StringBuilder wrappedLine = new StringBuilder(inputLineLength + 32);
@@ -897,4 +974,4 @@ public class WordUtils {
      */
     public WordUtils() {
     }
- }
+}

@@ -20,15 +20,16 @@ import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.HashMap; // Reverted from HashedMap for compilation
 import java.util.Iterator;
-import java.util.LinkedHashMap;
+import java.util.LinkedHashMap; // Reverted from HashedMap for compilation
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 
+// Removed import for org.apache.commons.collections4.map.HashedMap to resolve compilation errors
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 
@@ -131,8 +132,11 @@ public final class AlphabetConverter {
         final Set<Integer> encodingCopy = new LinkedHashSet<>(Arrays.asList(encoding));
         final Set<Integer> doNotEncodeCopy = new LinkedHashSet<>(Arrays.asList(doNotEncode));
 
+        // Reverted from HashedMap to LinkedHashMap to ensure compilation without external dependencies.
+        // LinkedHashMap maintains insertion order, which was the original behavior.
         final Map<Integer, String> originalToEncoded = new LinkedHashMap<>();
         final Map<String, String> encodedToOriginal = new LinkedHashMap<>();
+        // Reverted from HashedMap to HashMap to ensure compilation without external dependencies.
         final Map<Integer, String> doNotEncodeMap = new HashMap<>();
 
         final int encodedLetterLength;
@@ -192,14 +196,17 @@ public final class AlphabetConverter {
         // first division outside the loop
         int lettersSoFar = 1;
 
+        // Pre-calculate encodingCopy.size() for loop optimization
+        final int encodingCopySize = encodingCopy.size();
+
         // the first division takes into account that the doNotEncode
         // letters can't be in the leftmost place
         int lettersLeft = (originalCopy.size() - doNotEncodeCopy.size())
-                / (encodingCopy.size() - doNotEncodeCopy.size());
+                / (encodingCopySize - doNotEncodeCopy.size()); // Used pre-calculated size
 
-        while (lettersLeft / encodingCopy.size() >= 1) {
-            lettersLeft /= encodingCopy.size();
-            lettersSoFar++;
+        while (lettersLeft / encodingCopySize >= 1) { // Used pre-calculated size
+            lettersLeft /= encodingCopySize; // Used pre-calculated size
+            ++lettersSoFar; // Refactored from lettersSoFar++
         }
 
         encodedLetterLength = lettersSoFar + 1;
@@ -254,6 +261,8 @@ public final class AlphabetConverter {
      */
     public static AlphabetConverter createConverterFromMap(final Map<Integer, String> originalToEncoded) {
         final Map<Integer, String> unmodifiableOriginalToEncoded = Collections.unmodifiableMap(originalToEncoded);
+        // Reverted from HashedMap to LinkedHashMap to ensure compilation without external dependencies.
+        // LinkedHashMap maintains insertion order, which was the original behavior.
         final Map<String, String> encodedToOriginal = new LinkedHashMap<>();
 
         int encodedLetterLength = 1;
@@ -370,18 +379,18 @@ public final class AlphabetConverter {
             return null;
         }
 
-        final StringBuilder result = new StringBuilder();
+        final StringBuilder result = new StringBuilder(encoded.length()); // Refactored with initial capacity
 
-        for (int j = 0; j < encoded.length();) {
+        final int encodedLength = encoded.length(); // Pre-calculated for loop optimization
+        for (int j = 0; j < encodedLength;) { // Used pre-calculated length
             final int i = encoded.codePointAt(j);
             final String s = codePointToString(i);
 
             if (s.equals(originalToEncoded.get(i))) {
                 result.append(s);
-                j++; // because we do not encode in Unicode extended the
-                     // length of each encoded char is 1
+                ++j; // Refactored from j++
             } else {
-                if (j + encodedLetterLength > encoded.length()) {
+                if (j + encodedLetterLength > encodedLength) { // Used pre-calculated length
                     throw new UnsupportedEncodingException("Unexpected end "
                             + "of string while decoding " + encoded);
                 }
@@ -414,9 +423,10 @@ public final class AlphabetConverter {
             return null;
         }
 
-        final StringBuilder sb = new StringBuilder();
+        final StringBuilder sb = new StringBuilder(original.length()); // Refactored with initial capacity
 
-        for (int i = 0; i < original.length();) {
+        final int originalLength = original.length(); // Pre-calculated for loop optimization
+        for (int i = 0; i < originalLength;) { // Used pre-calculated length
             final int codePoint = original.codePointAt(i);
 
             final String nextLetter = originalToEncoded.get(codePoint);
@@ -482,7 +492,7 @@ public final class AlphabetConverter {
 
     @Override
     public String toString() {
-        final StringBuilder sb = new StringBuilder();
+        final StringBuilder sb = new StringBuilder(originalToEncoded.size() * (encodedLetterLength + ARROW.length() + 10 + System.lineSeparator().length())); // Refactored with estimated initial capacity
         // @formatter:off
         originalToEncoded.forEach((k, v) ->
             sb.append(codePointToString(k))
